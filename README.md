@@ -17,7 +17,13 @@ export OPENAI_API_KEY=<key goes here>
 
 You may have to log out and back in to get this to work.
 
-__or__ you can paste the key in to 
+__or__ you can paste the key directly in to the lean document:
+
+```
+example goes here
+```
+
+but remember not to commit your key to source control!
 
 # Usage
 
@@ -37,6 +43,7 @@ end
 - best-first vs greedy-search
 - temperature
 - numebr of suggestions to return
+- turn on logging
 
 ## Considerations
 
