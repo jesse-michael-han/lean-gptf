@@ -4,53 +4,51 @@ This repository lets you use GPTf to suggest tactics based on the goal state.
 
 # Accessing the OpenAI API
 
-GPTf is a cloud service provided by OpenAI.
-Suggestions are computed by polling this service, and this requires getting an access token from OpenAI.
-{here are the ways of getting access tokens}
+GPT-f is a generative language model trained by OpenAI. It is available over the OpenAI API using an API key. It receives a formatted tactic state as a prompt and will emit a list of tactics to try. The `gptf` tactic will try these tactics and return the ones that succeed as `Try this: ...` suggestions.
 
-Once you have recieved an accesss token, either add it as an OS environment variable called `OPENAI_API_KEY`
+To get an API key, apply to join the beta here: https://bit.ly/3nNWMyB
+
+Once you have recieved an API key, either add it as an OS environment variable called `OPENAI_API_KEY`
 
 ```
-# ~/.zshenv
+# ~/.zshenv, /etc/environment, etc.
 export OPENAI_API_KEY=<key goes here>
 ```
 
 You may have to log out and back in to get this to work.
 
-__or__ you can paste the key directly in to the lean document:
+__or__ you can paste the key directly in to the Lean document:
 
 ```
-example goes here
+/- set to `some $KEY` if you don't want to mess with environment variables
+   WARNING: do _not_ leave your key in committed source code -/
+   private meta def OPENAI_API_KEY : option string := none
 ```
-
-but remember not to commit your key to source control!
 
 # Usage
 
 ```
-import gptf
+import tactic.gptf
 
-lemma my_lemma : a = b :=
+lemma my_lemma {α} (a : α) : a = a :=
 begin
-  gpt -- this will poll the server and return a set of 'try this' commands.
+  gptf {n := 32, temp := 1.0} -- this will query the server and return a set of 'try this' commands.
 end
 
 ```
 
 ## Options
 
-- `fuel`
-- best-first vs greedy-search
-- temperature
-- numebr of suggestions to return
-- turn on logging
+- `temperature`: Controls the randomness of the predictions; defaults to 1.0. Decrease to make the model's predictions more deterministic.
+- `n`: Number of predictions to try at once.
 
 ## Considerations
 
-Remember that each poll to the server costs 'tokens'. At the time of writing, each request costs around $0.xx.
-So when using this tactic try to avoid editing the lean document above the point at which `gpt` is invoked, because each edit will cause the server to be polled, draining credit.
+The `gptf` tactic will query a model via the OpenAI API using `curl`. This query will be re-executed every time Lean compiles the tactic, and will count towards your API key rate limit. Thus, to avoid hitting the rate-limit and being throttled, please:
+- try not to have more than one uncommented `gptf` in a live Lean file at a time
+- replace calls to `gptf` by successful predictions whenever possible
 
-Also remember that even if the system doesn't progress the goal, you may be able to see clues of how to progress by looking at the suggestions which fail given in the 'Predictions' list.
+Also remember that even if the system doesn't progress the goal, you may be able to see clues of how to progress by looking at the suggestions which fail given in the 'Predictions' list. Currently, the model tends to predict long chains of rewrites; often, the first few rewrites in the chain will succeed.
 
 
 
