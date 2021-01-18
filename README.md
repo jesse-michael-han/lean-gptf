@@ -11,6 +11,27 @@ We are currently using a fork of Lean 3.23c. We will use an official release in 
 leanpkg configure && leanpkg build
 ```
 
+After Lean is finished compiling, try commenting out the proofs in `src/example.lean` and calling `gptf` inside the `begin ... end` blocks. Make sure your API key is set up (see below). For example,
+
+```
+example {α} (a : α) : a = a :=
+begin
+  gptf,
+end
+```
+
+should succeed with a message like this:
+
+```
+Successes:
+----------
+Try this:  refl
+
+All predictions:
+----------------
+Try this:  refl
+```
+
 # Accessing the OpenAI API
 
 GPT-f is a generative language model trained by OpenAI. It is available over the OpenAI API using an API key. It receives a formatted tactic state as a prompt and will emit a list of tactics to try. The `gptf` tactic will try these tactics and return the ones that succeed as `Try this: ...` suggestions.
@@ -27,6 +48,8 @@ export OPENAI_API_KEY=<key goes here> # you may have to log out and back in to g
 __or__ you can paste the key directly in to the Lean document:
 
 ```
+-- located in ./src/tactic/gptf/gptf.lean
+
 /- set to `some $KEY` if you don't want to mess with environment variables
    WARNING: do _not_ leave your key in committed source code -/
    private meta def OPENAI_API_KEY : option string := none
@@ -56,6 +79,3 @@ The `gptf` tactic will query a model via the OpenAI API using `curl`. This query
 - replace calls to `gptf` by successful predictions whenever possible
 
 Also remember that even if the system doesn't progress the goal, you may be able to see clues of how to progress by looking at the suggestions which fail given in the 'Predictions' list. Currently, the model tends to predict long chains of rewrites; often, the first few rewrites in the chain will succeed.
-
-
-
