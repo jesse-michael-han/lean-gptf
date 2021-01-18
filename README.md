@@ -1,6 +1,6 @@
 # lean-gptf
 
-This repository lets you use GPTf to suggest tactics based on the goal state.
+This repository lets you use GPT-f to suggest tactics based on the goal state. The current model is trained on 80% of the tactic proofs in the `mathlib` commit in this repository's `leanpkg.toml`.
 
 # Setup
 
