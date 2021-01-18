@@ -2,6 +2,15 @@
 
 This repository lets you use GPTf to suggest tactics based on the goal state.
 
+# Setup
+
+We are currently using a fork of Lean 3.23c. We will use an official release in the near future.
+
+```
+# download pre-built binaries and build the project
+leanpkg configure && leanpkg build
+```
+
 # Accessing the OpenAI API
 
 GPT-f is a generative language model trained by OpenAI. It is available over the OpenAI API using an API key. It receives a formatted tactic state as a prompt and will emit a list of tactics to try. The `gptf` tactic will try these tactics and return the ones that succeed as `Try this: ...` suggestions.
@@ -12,10 +21,8 @@ Once you have recieved an API key, either add it as an OS environment variable c
 
 ```
 # ~/.zshenv, /etc/environment, etc.
-export OPENAI_API_KEY=<key goes here>
+export OPENAI_API_KEY=<key goes here> # you may have to log out and back in to get this to work
 ```
-
-You may have to log out and back in to get this to work.
 
 __or__ you can paste the key directly in to the Lean document:
 
