@@ -74,7 +74,8 @@ when (tactic.is_trace_enabled_for `gptf) $ io.put_str_ln' format!"[openai.Comple
 pure {
   cmd := "curl",
   args := [
-         "-u"
+         "--silent"
+      ,  "-u"
       , format.to_string $ format!":{api_key}"
       ,  "-X"
       , "POST"
