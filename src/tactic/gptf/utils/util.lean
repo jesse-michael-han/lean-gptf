@@ -331,3 +331,10 @@ meta def parse_itactic (tactic_string : string) : tactic (tactic unit) := do
   eval_expr (tactic unit) rtac
 
 end parse_tac
+
+section os_env_var
+
+meta def os_env_var : tactic string := do l ← tactic.unsafe_run_io $ io.env.get "OS", l
+meta def is_windows : tactic bool := (do o ← os_env_var, return (o = "Windows_NT")) <|> return false
+
+end os_env_var

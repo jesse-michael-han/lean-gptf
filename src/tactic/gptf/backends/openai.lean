@@ -71,6 +71,7 @@ meta def CompletionRequest.to_cmd (engine_id : string) (api_key : string) : Comp
 when (tactic.is_trace_enabled_for `gptf) $ io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] ENTERING",
 serialized_req ← io.run_tactic' $ req.to_tactic_json,
 when (tactic.is_trace_enabled_for `gptf) $ io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] SERIALIZED",
+win ← io.run_tactic is_windows,
 pure {
   cmd := "curl",
   args := [
@@ -83,7 +84,10 @@ pure {
       , "-H", "OpenAI-Organization: org-kuQ09yewcuHU5GN5YYEUp2hh"
       , "-H", "Content-Type: application/json"
       , "-d"
-      , json.unparse serialized_req
+      , let jr := json.unparse serialized_req in if win then
+          "\\\"".intercalate (jr.split (= '\"'))
+        else
+          jr
     ]
 }
 
