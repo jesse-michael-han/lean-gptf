@@ -32,6 +32,5 @@ end
 
 example (n : ℕ) (m : ℕ) : nat.succ n < nat.succ n + 1  :=
 begin
-  exact lt_add_one _  
+  exact lt_add_one _
 end
-

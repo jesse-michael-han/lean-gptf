@@ -334,7 +334,10 @@ end parse_tac
 
 section os_env_var
 
-meta def os_env_var : tactic string := do l ← tactic.unsafe_run_io $ io.env.get "OS", l
-meta def is_windows : tactic bool := (do o ← os_env_var, return (o = "Windows_NT")) <|> return false
+meta def os_env_var : tactic (option string) :=
+tactic.unsafe_run_io $ io.env.get "OS"
+
+meta def is_windows : tactic bool :=
+flip option.get_or_else ff <$> functor.map (= "Windows_NT") <$> os_env_var
 
 end os_env_var
