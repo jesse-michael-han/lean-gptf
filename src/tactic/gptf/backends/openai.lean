@@ -94,9 +94,9 @@ pure {
 meta def serialize_ts
   (req : CompletionRequest)
   : tactic_state → tactic CompletionRequest := λ ts, do {
-  ts_str ← postprocess_tactic_state ts,
+  ts_str ← ts.fully_qualified >>= postprocess_tactic_state,
   let prompt : string :=
-    "[LN] GOAL " ++ ts_str ++ " PROOFSTEP",
+    "[LN] GOAL " ++ ts_str ++ " PROOFSTEP ",
   eval_trace format!"\n \n \n PROMPT: {prompt} \n \n \n ",
   pure {
     prompt := prompt,

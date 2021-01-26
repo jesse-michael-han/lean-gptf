@@ -341,3 +341,34 @@ meta def is_windows : tactic bool :=
 flip option.get_or_else ff <$> functor.map (= "Windows_NT") <$> os_env_var
 
 end os_env_var
+
+section full_names
+
+namespace tactic
+
+meta def enable_full_names : tactic unit := do {
+  set_bool_option `pp.full_names true
+}
+
+meta def with_full_names {α} (tac : tactic α) : tactic α :=
+tactic.save_options $ enable_full_names *> tac
+
+end tactic
+
+meta def tactic_state.fully_qualified (ts : tactic_state) : tactic tactic_state := do {
+  ts₀ ← tactic.read,
+  tactic.write ts,
+  result_ts ← tactic.with_full_names $ tactic.read,
+  tactic.write ts₀,
+  pure result_ts
+}
+
+meta def tactic_state.fully_qualified_string (ts : tactic_state) : tactic string := do {
+  ts₀ ← tactic.read,
+  tactic.write ts,
+  result ← tactic.with_full_names $ (tactic.read >>= λ ts, pure ts.to_format.to_string),
+  tactic.write ts₀,
+  pure result
+}
+
+end full_names

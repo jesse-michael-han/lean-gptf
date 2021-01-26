@@ -7,12 +7,12 @@ end
 
 example : ∃ n : ℕ, 8 = 2*n :=
 begin
-  exact ⟨4, rfl⟩
+  exact ⟨4, by norm_num⟩
 end
 
 example {P Q R : Prop} : P → (P → R) → R :=
 begin
-  intros hp₁ hp₂, exact hp₂ hp₁
+  tauto
 end
 
 example {p q r : Prop} (h₁ : p) (h₂ : q) : (p ∧ q) ∨ r :=
@@ -22,15 +22,15 @@ end
 
 example {P Q : Prop} : (¬ P) ∧ (¬ Q) → ¬ (P ∨ Q) :=
 begin
-  intro h, simp [h]
+  rintro ⟨hp, hq⟩, rw not_or_distrib, exact ⟨hp, hq⟩
 end
 
 example {P Q R : Prop} : (P ∧ Q) → ((P → R) → ¬ (Q → ¬ R)) :=
 begin
-  intros h1 h2, intro h3, apply h3 _, { cases h1 with p h1, exact h2 p }, intros, exact h1.right
+  rintros ⟨h₁, h₂⟩ h₃, simp [@h₂], exact h₃ h₁
 end
 
 example (n : ℕ) (m : ℕ) : nat.succ n < nat.succ n + 1  :=
 begin
-  exact lt_add_one _
+  apply nat.lt_succ_self
 end

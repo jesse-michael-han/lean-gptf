@@ -35,12 +35,9 @@ open openai
 
 meta structure GPTSuggestConfig : Type :=
 (n : ℕ := 32)
-(fuel : ℕ := 0)
 (temp : native.float := 1.0)
 (silent := ff)
-(max_depth : ℕ := 50)
-(max_width : ℕ := 10)
-(engine_id : string := "formal-3b-lean-webmath-1230-v2-c4")
+(engine_id : string := "formal-large-lean-0119-mix-v1-c4")
 
 meta def gptf_core (cfg : GPTSuggestConfig := {}) : tactic (list string × list string) := do {
 tactic.success_if_fail done *> do {

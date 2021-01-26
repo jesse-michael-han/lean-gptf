@@ -104,7 +104,7 @@ meta def run_all_beam_candidates
   },
 
   -- this is responsible for gracefully handling "error" JSON messages and should return an empty list of candidates
-  candidates ← list.filter (λ x, ¬ "tidy" ≤ prod.fst x) <$> (get_candidates msg >>= list.dedup'),
+  candidates ← list.filter (λ x, not $ "tidy".is_prefix_of $ prod.fst x) <$> (get_candidates msg >>= list.dedup'),
 
   eval_trace format!"[run_all_beam_candidates] CANDIDATES: {candidates}",
   successful_candidates ← (prod.snd <$> prod.snd <$> state_t.run (iterate_until try_candidate stop candidates.length $ pure none) ⟨candidates, []⟩),
