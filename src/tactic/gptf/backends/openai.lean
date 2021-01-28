@@ -103,6 +103,18 @@ meta def serialize_ts
     ..req}
 }
 
+meta def serialize_ts_exact
+  (req : CompletionRequest)
+  : tactic_state → tactic CompletionRequest := λ ts, do {
+  ts_str ← ts.fully_qualified >>= postprocess_tactic_state,
+  let prompt : string :=
+    "[LN] GOAL " ++ ts_str ++ " PROOF_TERM ",
+  eval_trace format!"\n \n \n PROMPT: {prompt} \n \n \n ",
+  pure {
+    prompt := prompt,
+    ..req}
+}
+
 setup_tactic_parser
 
 private meta def decode_response_msg : json → io (json × json) := λ response_msg, do {
@@ -173,6 +185,12 @@ meta def gptf_proof_search_step (engine_id : string) (api_key : string) (req : C
     (openai_api
       engine_id api_key)
         (serialize_ts req) (run_all_beam_candidates $ unwrap_lm_response_logprobs "[gptf_proof_search_step]")
+}
+
+meta def gptf_exact_step (engine_id : string) (api_key : string) (req : CompletionRequest) : tactic (list string × list string) := do {
+  proof_search_step
+    (openai_api engine_id api_key)
+      (serialize_ts_exact req) (run_all_beam_candidates $ unwrap_lm_response_logprobs_exact "[gptf_exact_step]")
 }
 
 end openai_proof_search

@@ -47,8 +47,28 @@ tactic.success_if_fail done *> do {
   }
 }
 
+meta def gptf_exact_core (cfg : GPTSuggestConfig := {}) : tactic (list string × list string) := do {
+tactic.success_if_fail done *> do {
+  let req := { n := cfg.n, temperature := cfg.temp, .. default_partial_req },
+  api_key ← get_openai_api_key,
+  gptf_exact_step cfg.engine_id api_key req
+  }}
+
+
 meta def gptf (cfg : GPTSuggestConfig := {}) : tactic unit := do {
   ⟨successes, predictions⟩ ← gptf_core cfg,
+  if (successes.length > 0) then do {
+    tactic.trace "\nSuccesses:\n----------",
+    successes.mmap' tactic.trythis
+  } else do {
+    tactic.trace "no predictions succeeded"
+  },
+  when (predictions.length > 0) $
+    tactic.trace "\nAll predictions: \n----------------" *> predictions.mmap' tactic.trythis
+}
+
+meta def gptf_exact (cfg : GPTSuggestConfig := {}) : tactic unit := do {
+  ⟨successes, predictions⟩ ← gptf_exact_core cfg,
   if (successes.length > 0) then do {
     tactic.trace "\nSuccesses:\n----------",
     successes.mmap' tactic.trythis

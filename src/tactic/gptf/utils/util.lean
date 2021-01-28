@@ -132,6 +132,14 @@ meta def unwrap_lm_response_logprobs (ident : option string) : json → tactic (
 }
 | exc := tactic.trace format!"{ident.get_or_else \"[unwrap_lm_response_logprobs.anonymous]\"} run_best_beam_candidate UNEXPECTED MESSAGE:\n---\n{exc}\n---\n" *> pure []
 
+meta def unwrap_lm_response_logprobs_exact (ident : option string) : json → tactic (list $ string × native.float)
+| (json.array $ [(json.array predictions), (json.array scores)]) := do {
+  decoded_strings ← predictions.mmap $ option.to_monad ∘ json.get_string,
+  decoded_scores ← scores.mmap $ option.to_monad ∘ json.get_float,
+  pure $ list.zip decoded_strings decoded_scores
+}
+| exc := tactic.trace format!"{ident.get_or_else \"[unwrap_lm_response_logprobs_exact.anonymous]\"} run_best_beam_candidate UNEXPECTED MESSAGE:\n---\n{exc}\n---\n" *> pure []
+
 meta def format.join_using : format → list format → format := λ x xs,
 format.join $ list.intercalate [x] (pure <$> xs)
 
