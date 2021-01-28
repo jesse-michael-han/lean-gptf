@@ -20,6 +20,8 @@ meta structure CompletionRequest : Type :=
 (presence_penalty : option native.float := none)
 (frequency_penalty : option native.float := none)
 (show_trace : bool := ff)
+(prompt_token := "PROOFSTEP")
+(prompt_prefix := "")
 
 meta def CompletionRequest.to_tactic_json : CompletionRequest → tactic json :=
 let validate_max_tokens : int → bool := λ n, n ≤ 2048 in
@@ -35,7 +37,7 @@ let validate_optional_and_return {α} [has_to_format α] (pred : α → bool) : 
 let MAX_N : int := 128 in
 λ req, match req with
 | ⟨prompt, max_tokens, temperature, top_p, n, best_of,
-  stream, logprobs, echo, stop, presence_penalty, frequency_penalty, _⟩ := do
+  stream, logprobs, echo, stop, presence_penalty, frequency_penalty, _, prompt_token, prompt_prefix⟩ := do
   -- TODO(jesse): ensure validation does not fail silently
   max_tokens ← validate_and_return validate_max_tokens max_tokens,
   -- temperature ← validate_and_return validate_float_frac temperature,
@@ -67,7 +69,7 @@ end
 
 meta def CompletionRequest.to_cmd (engine_id : string) (api_key : string) : CompletionRequest → io (io.process.spawn_args)
 | req@⟨prompt, max_tokens, temperature, top_p, n, best_of,
-  stream, logprobs, echo, stop, presence_penalty, frequency_penalty, _⟩ := do
+  stream, logprobs, echo, stop, presence_penalty, frequency_penalty, _, prompt_token, prompt_prefix⟩ := do
 when (tactic.is_trace_enabled_for `gptf) $ io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] ENTERING",
 serialized_req ← io.run_tactic' $ req.to_tactic_json,
 when (tactic.is_trace_enabled_for `gptf) $ io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] SERIALIZED",
@@ -96,7 +98,7 @@ meta def serialize_ts
   : tactic_state → tactic CompletionRequest := λ ts, do {
   ts_str ← ts.fully_qualified >>= postprocess_tactic_state,
   let prompt : string :=
-    "[LN] GOAL " ++ ts_str ++ " PROOFSTEP ",
+    "[LN] GOAL " ++ ts_str ++ (format!" {req.prompt_token} ").to_string ++ req.prompt_prefix,
   eval_trace format!"\n \n \n PROMPT: {prompt} \n \n \n ",
   pure {
     prompt := prompt,
@@ -172,7 +174,7 @@ meta def gptf_proof_search_step (engine_id : string) (api_key : string) (req : C
   proof_search_step
     (openai_api
       engine_id api_key)
-        (serialize_ts req) (run_all_beam_candidates $ unwrap_lm_response_logprobs "[gptf_proof_search_step]")
+        (serialize_ts req) (run_all_beam_candidates $ unwrap_lm_response_logprobs req.prompt_prefix "[gptf_proof_search_step]")
 }
 
 end openai_proof_search

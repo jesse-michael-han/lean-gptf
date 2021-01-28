@@ -124,9 +124,10 @@ meta def json_float_array_sum : json → option json
   end) (0.0 : native.float)
 | exc := none
 
-meta def unwrap_lm_response_logprobs (ident : option string) : json → tactic (list $ string × native.float)
+meta def unwrap_lm_response_logprobs (prompt_prefix : string) (ident : option string) : json → tactic (list $ string × native.float)
 | (json.array $ [(json.array predictions), (json.array scores)]) := do {
   decoded_strings ← predictions.mmap $ option.to_monad ∘ json.get_string,
+  let decoded_strings := (λ x, prompt_prefix ++ x) <$> decoded_strings,
   decoded_scores ← scores.mmap $ option.to_monad ∘ json.get_float,
   pure $ list.zip decoded_strings decoded_scores
 }

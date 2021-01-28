@@ -1,6 +1,8 @@
 import tactic.gptf
 import data.list.sigma
 
+section gptf
+
 example {α} (a : α) : a = a :=
 begin
   refl
@@ -34,7 +36,7 @@ end
 
 example (n : ℕ) (m : ℕ) : nat.succ n < nat.succ n + 1  :=
 begin
-  apply nat.lt_succ_self
+  rw [lt_add_iff_pos_right], exact dec_trivial
 end
 
 example : ∀ (F1 F2 F3 : Prop), ((¬F1 ∧ F3) ∨ (F2 ∧ ¬F3)) → (F2 → F1) → (F2 → F3) →  ¬F2 :=
@@ -44,7 +46,7 @@ end
 
 example : ∀ (f : nat → Prop), f 2 → ∃ x, f x :=
 begin
-  exact λ f hf, Exists.intro 2 hf
+  intros f hf, exact ⟨_, hf⟩
 end
 
 example {G} [group G] (x y z : G) : (x * z) * (z⁻¹ * y) = x * y :=
@@ -58,3 +60,5 @@ example {α : Type u} {β : α → Type v} [_inst_1 : decidable_eq α] {a : α} 
 begin
   induction l₁ with x xs generalizing l₂; cases l₂ with y ys; simp
 end
+
+end gptf
