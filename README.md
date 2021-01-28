@@ -4,8 +4,6 @@ This repository lets you use GPT-f to suggest tactics based on the goal state. T
 
 # Setup
 
-We are currently using a fork of Lean 3.23c. We will use an official release in the near future.
-
 ```
 # download pre-built binaries and build the project
 leanpkg configure && leanpkg build
