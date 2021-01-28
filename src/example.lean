@@ -56,5 +56,5 @@ universes u v
 example {α : Type u} {β : α → Type v} [_inst_1 : decidable_eq α] {a : α} {l₁ l₂ : list (sigma β)} :
   (list.kerase a l₁).kunion (list.kerase a l₂) = list.kerase a (l₁.kunion l₂) :=
 begin
-  induction l₁; simp
+  induction l₁ with x xs generalizing l₂; cases l₂ with y ys; simp
 end

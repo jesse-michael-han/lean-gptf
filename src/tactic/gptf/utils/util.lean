@@ -53,7 +53,7 @@ meta def num_goals' : tactic_state → option ℕ :=
 -- TODO(jesse): this is a hack. might be better to do this in python
 meta def consume_with_parser {α} (p : lean.parser α) : string → io string := λ inp, do {
   io.run_tactic' $ do
-    prod.snd <$> (lean.parser.run (with_input p inp) "")
+    prod.snd <$> lean.parser.run (with_input p inp)
 }
 
 -- TODO(jesse): performance
@@ -317,13 +317,13 @@ open tactic
     `eval_expr (tactic unit)`. -/
 meta def parse_itactic_reflected (tactic_string : string) : tactic expr :=
 let itactic_string := "{ " ++ tactic_string ++  " }" in
-flip lean.parser.run "" $ do
-  get_state >>= λ ps, of_tactic $ do
-    tactic.set_env ps.env,
-    eval_trace format!"[parse_itactic_reflected] TRYING TO PARSE {itactic_string}",
-    (reflected_value.expr ∘ prod.fst) <$>
-      (@interaction_monad.run_with_state' parser_state _ _ ps $
-        with_input parser.itactic_reflected itactic_string)
+  lean.parser.run $ do
+    get_state >>= λ ps, of_tactic $ do
+      tactic.set_env ps.env,
+      eval_trace format!"[parse_itactic_reflected] TRYING TO PARSE {itactic_string}",
+      (reflected_value.expr ∘ prod.fst) <$>
+        (@interaction_monad.run_with_state' parser_state _ _ ps $
+          with_input parser.itactic_reflected itactic_string)
 
 /-- Parse an interactive tactic from a string. -/
 meta def parse_itactic (tactic_string : string) : tactic (tactic unit) := do
