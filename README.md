@@ -4,14 +4,14 @@ This repository lets you use GPT-f to suggest tactics based on the goal state. T
 
 # Setup
 
-```
+```bash
 # download pre-built binaries and build the project
 leanpkg configure && leanpkg build
 ```
 
 After Lean is finished compiling, try commenting out the proofs in `src/example.lean` and calling `gptf` inside the `begin ... end` blocks. Make sure your API key is set up (see below). For example,
 
-```
+```lean
 example {α} (a : α) : a = a :=
 begin
   gptf,
@@ -20,7 +20,7 @@ end
 
 should succeed with a message like this:
 
-```
+```lean
 Successes:
 ----------
 Try this:  refl
@@ -29,6 +29,20 @@ All predictions:
 ----------------
 Try this:  refl
 ```
+
+# Importing `lean-gptf` as a dependency for your own project
+
+```
+leanpkg add jesse-michael-han/lean-gptf
+
+leanpkg configure
+
+leanproject get-mathlib-cache
+
+leanpkg build
+```
+
+then remember to `import tactic.gptf` at the top.
 
 # Accessing the OpenAI API
 
