@@ -22,6 +22,7 @@ meta structure CompletionRequest : Type :=
 (show_trace : bool := ff)
 (prompt_token := "PROOFSTEP")
 (prompt_prefix := "")
+(replace_prefix : option (string → string) := none)
 
 meta def CompletionRequest.to_tactic_json : CompletionRequest → tactic json :=
 let validate_max_tokens : int → bool := λ n, n ≤ 2048 in
@@ -37,7 +38,7 @@ let validate_optional_and_return {α} [has_to_format α] (pred : α → bool) : 
 let MAX_N : int := 128 in
 λ req, match req with
 | ⟨prompt, max_tokens, temperature, top_p, n, best_of,
-  stream, logprobs, echo, stop, presence_penalty, frequency_penalty, _, prompt_token, prompt_prefix⟩ := do
+  stream, logprobs, echo, stop, presence_penalty, frequency_penalty, _, prompt_token, prompt_prefix, replace_prefix⟩ := do
   -- TODO(jesse): ensure validation does not fail silently
   max_tokens ← validate_and_return validate_max_tokens max_tokens,
   -- temperature ← validate_and_return validate_float_frac temperature,
@@ -69,7 +70,7 @@ end
 
 meta def CompletionRequest.to_cmd (engine_id : string) (api_key : string) : CompletionRequest → io (io.process.spawn_args)
 | req@⟨prompt, max_tokens, temperature, top_p, n, best_of,
-  stream, logprobs, echo, stop, presence_penalty, frequency_penalty, _, prompt_token, prompt_prefix⟩ := do
+  stream, logprobs, echo, stop, presence_penalty, frequency_penalty, _, prompt_token, prompt_prefix, replace_prefix⟩ := do
 when (tactic.is_trace_enabled_for `gptf) $ io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] ENTERING",
 serialized_req ← io.run_tactic' $ req.to_tactic_json,
 when (tactic.is_trace_enabled_for `gptf) $ io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] SERIALIZED",
@@ -174,7 +175,7 @@ meta def gptf_proof_search_step (engine_id : string) (api_key : string) (req : C
   proof_search_step
     (openai_api
       engine_id api_key)
-        (serialize_ts req) (run_all_beam_candidates $ unwrap_lm_response_logprobs req.prompt_prefix "[gptf_proof_search_step]")
+        (serialize_ts req) (run_all_beam_candidates $ unwrap_lm_response_logprobs req.prompt_prefix req.replace_prefix "[gptf_proof_search_step]")
 }
 
 end openai_proof_search

@@ -30,13 +30,14 @@ end
 
 example {P Q R : Prop} : (P ∧ Q) → ((P → R) → ¬ (Q → ¬ R)) :=
 begin
-  rintro ⟨h₁, h₂⟩ h₃, apply not_imp_of_and_not, apply and.intro h₂,
-  rw [not_not], apply h₃ h₁
+  rintros ⟨h₁, h₂⟩ h₃, try {exact λ h, h₁ _ h}, rw [imp_not_comm],
+  apply not_imp_not.mpr (λ con, _), exact id, apply con, apply h₃,
+  apply h₁, exact h₂
 end
 
 example (n : ℕ) (m : ℕ) : nat.succ n < nat.succ n + 1  :=
 begin
-  rw [lt_add_iff_pos_right], exact dec_trivial
+  {[smt] eblast_using  [nat.add_one], exact nat.lt_succ_self _}
 end
 
 example : ∀ (F1 F2 F3 : Prop), ((¬F1 ∧ F3) ∨ (F2 ∧ ¬F3)) → (F2 → F1) → (F2 → F3) →  ¬F2 :=
@@ -49,9 +50,9 @@ begin
   intros f hf, exact ⟨_, hf⟩
 end
 
-example {G} [group G] (x y z : G) : (x * z) * (z⁻¹ * y) = x * y :=
+example {G : Type} [group G] (x y z : G) : (x * z) * (z⁻¹ * y) = x * y :=
 begin
-  simp [mul_assoc]
+  simp [mul_assoc]  
 end
 universes u v
 
