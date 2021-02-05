@@ -79,6 +79,7 @@ pure {
   cmd := "curl",
   args := [
          "--silent"
+      ,  " -N"
       ,  "-u"
       , format.to_string $ format!":{api_key}"
       ,  "-X"
