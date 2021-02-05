@@ -25,7 +25,7 @@ end
 
 example {P Q : Prop} : (¬ P) ∧ (¬ Q) → ¬ (P ∨ Q) :=
 begin
-  rintro ⟨h₁, h₂⟩, simp [h₁, h₂]
+  exact not_or_distrib.2 -- `gptf {pfx := "exact"}`
 end
 
 example {P Q R : Prop} : (P ∧ Q) → ((P → R) → ¬ (Q → ¬ R)) :=
@@ -42,12 +42,15 @@ end
 
 example : ∀ (F1 F2 F3 : Prop), ((¬F1 ∧ F3) ∨ (F2 ∧ ¬F3)) → (F2 → F1) → (F2 → F3) →  ¬F2 :=
 begin
-  tauto
+  intros P Q R H₁ H₂ H₃ H₄,
+  apply H₁.elim, -- `gptf {pfx := "apply"}`
+  { assume h, simp * at * }, -- `gptf`
+  cc -- `gptf`
 end
 
 example : ∀ (f : nat → Prop), f 2 → ∃ x, f x :=
 begin
-  intros f hf, exact ⟨_, hf⟩
+  exact λ f hf, ⟨_, hf⟩ -- by `gptf {pfx := "exact"}` :D
 end
 
 example {G : Type} [group G] (x y z : G) : (x * z) * (z⁻¹ * y) = x * y :=
@@ -59,7 +62,7 @@ universes u v
 example {α : Type u} {β : α → Type v} [_inst_1 : decidable_eq α] {a : α} {l₁ l₂ : list (sigma β)} :
   (list.kerase a l₁).kunion (list.kerase a l₂) = list.kerase a (l₁.kunion l₂) :=
 begin
-  induction l₁ with x xs generalizing l₂; cases l₂ with y ys; simp
+  induction l₁ generalizing l₂, case list.nil { refl }, simp
 end
 
 end gptf
