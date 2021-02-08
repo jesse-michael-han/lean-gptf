@@ -7,9 +7,8 @@ import tactic.finish
 open openai
 
 namespace tactic
-namespace interactive
 
-meta def autoname_core (e : expr) (cfg : GPTSuggestConfig := {}) : tactic (list name) := do {
+meta def autoname_core (e : expr) (cfg : interactive.GPTSuggestConfig := {}) : tactic (list name) := do {
   let cfg := {prompt_token := "PREDICTNAME", ..cfg},
   let req := {
     n := cfg.n,
@@ -30,6 +29,8 @@ meta def autoname_core (e : expr) (cfg : GPTSuggestConfig := {}) : tactic (list 
     responses.mmap (λ x, (optional $ lean.parser.run $ prod.fst <$>
       lean.parser.with_input lean.parser.ident x))
 }
+
+namespace interactive
 
 meta def autoname (cfg : GPTSuggestConfig := {n := 12, temp := 1.0}) : tactic unit := do {
   ts ← tactic.read,
