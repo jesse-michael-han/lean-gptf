@@ -95,6 +95,35 @@ pure {
     ]
 }
 
+meta def mk_binding' (ctor : name → binder_info → expr → expr → expr) (e : expr) : Π (l : expr), tactic expr
+| h@(expr.local_const n pp_n bi ty) := do {
+    ty ← tactic.infer_type h,
+    pure $ ctor pp_n bi ty (e.abstract_local n)
+  }
+| _ := pure $ e
+
+meta def extract_fully_bound_goal : tactic expr := do {
+  locals ← list.reverse <$> tactic.local_context,
+  locals_with_types ← locals.mmap (λ x, prod.mk x <$> tactic.infer_type x),
+  g ← tactic.target,
+  locals.iterM g $ λ acc h, do {
+    mk_binding' expr.pi acc h
+  }
+}
+
+meta def autoname_serialize_ts_core (e : expr) (req : CompletionRequest)
+  : tactic CompletionRequest := do {
+  ts_str ← tactic.with_full_names $ do {
+    format.to_string <$> format.flatten <$> tactic.pp e
+  },
+  let prompt : string :=
+    "[LN] GOAL " ++ ts_str ++ (format!" {req.prompt_token} ").to_string ++ req.prompt_prefix,
+  eval_trace format!"\n \n \n PROMPT: {prompt} \n \n \n ",
+  pure {
+    prompt := prompt,
+    ..req}
+}
+
 meta def serialize_ts
   (req : CompletionRequest)
   : tactic_state → tactic CompletionRequest := λ ts, do {
@@ -126,7 +155,7 @@ let fn : CompletionRequest → io json := λ req, do {
   when req.show_trace $ io.put_str_ln' format!"[openai_api] RAW RESPONSE: {response_raw}",
 
   response_msg ← (option.to_monad $ json.parse response_raw) | io.fail' format!"[openai_api] JSON PARSE FAILED {response_raw}",
-    
+
   when req.show_trace $ io.put_str_ln' format!"GOT RESPONSE_MSG",
 
   do {

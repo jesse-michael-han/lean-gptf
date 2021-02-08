@@ -25,7 +25,7 @@ end
 
 example {P Q : Prop} : (¬ P) ∧ (¬ Q) → ¬ (P ∨ Q) :=
 begin
-  exact not_or_distrib.2 -- `gptf {pfx := "exact"}`
+  exact not_or_distrib.mpr -- `gptf {pfx := "exact"}`
 end
 
 example {P Q R : Prop} : (P ∧ Q) → ((P → R) → ¬ (Q → ¬ R)) :=
