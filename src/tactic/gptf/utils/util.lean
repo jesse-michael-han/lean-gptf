@@ -77,7 +77,7 @@ string.intercalate (⟨['\t']⟩ : string) (consume_spaces <$> strs)
 
 meta def postprocess_tactic_state : tactic_state → tactic string := λ ts, do
   let main : tactic string := do {
-    let ts_str := ts.to_format.to_string,
+    let ts_str := "\\\"".intercalate (ts.to_format.to_string.split (= '"')),
     tabbed_ts_str ← do {
       if (num_goals' ts).get_or_else 0 ≤ 1
       then pure $ ts_str.replace_char '\n' '\t'
