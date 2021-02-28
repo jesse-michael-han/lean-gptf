@@ -10,7 +10,7 @@ end
 
 example : ∃ n : ℕ, 8 = 2*n :=
 begin
-  exact dec_trivial
+  exact ⟨4, rfl⟩
 end
 
 example {P Q R : Prop} : P → (P → R) → R :=

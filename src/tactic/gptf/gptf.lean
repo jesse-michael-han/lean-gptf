@@ -38,6 +38,7 @@ meta structure GPTSuggestConfig : Type :=
 (temp : native.float := 1.0)
 (silent := ff)
 (engine_id : string := "formal-lean-wm-to-tt-m1-m2-v4-c4")
+(api_key : option string := none)
 (prompt_token := "PROOFSTEP")
 (pfx := "")
 (postprocess : option (string → string) := none)
@@ -45,7 +46,7 @@ meta structure GPTSuggestConfig : Type :=
 meta def gptf_core (cfg : GPTSuggestConfig := {}) : tactic (list string × list string) := do {
 tactic.success_if_fail done *> do {
   let req := { n := cfg.n, temperature := cfg.temp, prompt_token := cfg.prompt_token, prompt_prefix := cfg.pfx, replace_prefix := cfg.postprocess, .. default_partial_req },
-  api_key ← get_openai_api_key,
+  api_key ← (cfg.api_key <|> get_openai_api_key),
   gptf_proof_search_step cfg.engine_id api_key req
   }
 }
