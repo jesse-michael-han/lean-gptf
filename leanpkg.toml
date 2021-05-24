@@ -1,8 +1,8 @@
 [package]
 name = "lean-gptf"
 version = "0.1"
-lean_version = "leanprover-community/lean:3.26.0"
+lean_version = "leanprover-community/lean:3.30.0"
 path = "src"
 
 [dependencies]
-mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "95454452f6b3569bf967d35aab8d852b1ddf8017"}
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "1d4990e262a82ed7d30a1c5b63e428df71839718"}
