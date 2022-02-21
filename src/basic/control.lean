@@ -83,11 +83,6 @@ instance monad_except.of_statet {ε σ} {m : Type → Type} [monad m] [monad_exc
 , catch := λ α S e, ⟨λ s, catch (state_t.run S s) (λ x, state_t.run (e x) s)⟩ -- [note] alternatively, you could propagate the state.
 }
 
-instance monad_except.alt {ε} [inhabited ε] {m : Type → Type} [monad m] [monad_except ε m] : alternative m :=
-{ failure := λ α,throw $ inhabited.default ε
-, orelse := λ α x y, monad_except.orelse x y
-}
-
 def monad_state.hypothetically {m : Type → Type} [monad m] {σ α : Type} [monad_state σ m] : m α → m α
 | m := do s ← get, a ← m, put s, pure a
 
