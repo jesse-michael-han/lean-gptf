@@ -17,18 +17,18 @@ meta structure CompletionRequest : Type :=
 (logprobs : int := 0)
 (echo : option bool := none)
 (stop : option string := none) -- TODO(jesse): list string
-(presence_penalty : option native.float := none)
-(frequency_penalty : option native.float := none)
 (show_trace : bool := ff)
-(prompt_token := "PROOFSTEP")
+(prompt_token := "TACTIC")
 (prompt_prefix := "")
 (replace_prefix : option (string → string) := none)
 
 meta def CompletionRequest.to_tactic_json : CompletionRequest → tactic json :=
-let validate_max_tokens : int → bool := λ n, n ≤ 2048 in
+let validate_max_tokens : int → bool := λ n, n ≤ 4096 in
 let validate_float_frac : native.float → bool := λ k, 0 ≤ k ∧ k ≤ 1 in
 let validate_and_return {α} [has_to_format α] (pred : α → bool) : α → tactic α :=
-  λ a, ((guard $ pred a) *> pure a <|> by {tactic.unfreeze_local_instances, exact (tactic.fail format!"[openai.CompletionRequest.to_tactic_json] VALIDATION FAILED FOR {a}")}) in
+  λ a, ((guard $ pred a) *> pure a <|>
+    by {tactic.unfreeze_local_instances,
+        exact (tactic.fail format!"[openai.CompletionRequest.to_tactic_json] VALIDATION FAILED FOR {a}")}) in
 let validate_optional_and_return {α} [has_to_format α] (pred : α → bool) : option α → tactic (option α) := λ x, do {
   match x with
   | (some val) := some <$> by {tactic.unfreeze_local_instances, exact (validate_and_return pred val)}
@@ -38,15 +38,13 @@ let validate_optional_and_return {α} [has_to_format α] (pred : α → bool) : 
 let MAX_N : int := 128 in
 λ req, match req with
 | ⟨prompt, max_tokens, temperature, top_p, n, best_of,
-  stream, logprobs, echo, stop, presence_penalty, frequency_penalty, _, prompt_token, prompt_prefix, replace_prefix⟩ := do
+  stream, logprobs, echo, stop, _, prompt_token, prompt_prefix, replace_prefix⟩ := do
   -- TODO(jesse): ensure validation does not fail silently
   max_tokens ← validate_and_return validate_max_tokens max_tokens,
   -- temperature ← validate_and_return validate_float_frac temperature,
   top_p ← validate_and_return validate_float_frac top_p,
   n ← validate_and_return (λ x, 0 ≤ x ∧ x ≤ MAX_N) /- go wild with the candidates -/ n,
   best_of ← validate_optional_and_return (λ x, n ≤ x ∧ x ≤ MAX_N) best_of,
-  presence_penalty ← validate_optional_and_return validate_float_frac presence_penalty,
-  frequency_penalty ← validate_optional_and_return validate_float_frac frequency_penalty,
 
   eval_trace $ "[openai.CompletionRequest.to_tactic_json] VALIDATION PASSED",
 
@@ -60,33 +58,35 @@ let MAX_N : int := 128 in
     ("stream", json.of_bool <$> stream),
     ("logprobs", some $ json.of_int logprobs),
     ("echo", json.of_bool <$> echo),
-    ("stop", json.of_string <$> stop),
-    ("presence_penalty", json.of_float <$> presence_penalty),
-    ("frequency_penalty", json.of_float <$> frequency_penalty)
+    ("stop", json.of_string <$> stop)
   ],
 
   pure $ json.object $ pre_kvs.filter_map (λ ⟨k,mv⟩, prod.mk k <$> mv)
 end
 
-meta def CompletionRequest.to_cmd (engine_id : string) (api_key : string) : CompletionRequest → io (io.process.spawn_args)
+meta def CompletionRequest.to_cmd
+  (engine_id : string)
+  (api_key : string) :
+  CompletionRequest → io (io.process.spawn_args)
 | req@⟨prompt, max_tokens, temperature, top_p, n, best_of,
-  stream, logprobs, echo, stop, presence_penalty, frequency_penalty, _, prompt_token, prompt_prefix, replace_prefix⟩ := do
-when (tactic.is_trace_enabled_for `gptf) $ io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] ENTERING",
+  stream, logprobs, echo, stop, _, prompt_token, prompt_prefix, replace_prefix⟩ := do
+when (tt) $ io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] ENTERING",
 serialized_req ← io.run_tactic' $ req.to_tactic_json,
-when (tactic.is_trace_enabled_for `gptf) $ io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] SERIALIZED",
+when (tt) $ io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] SERIALIZED",
 win ← io.run_tactic is_windows,
 pure {
   cmd := "curl",
   args := [
          "--silent"
       ,  " -N"
-      ,  "-u"
-      , format.to_string $ format!":{api_key}"
+      -- ,  "-u"
+      -- , format.to_string $ format!":{api_key}"
       ,  "-X"
       , "POST"
-      ,  format.to_string format!"https://api.openai.com/v1/engines/{engine_id}/completions"
-      , "-H", "OpenAI-Organization: org-kuQ09yewcuHU5GN5YYEUp2hh"
+      ,  format.to_string format!"http://api-{engine_id}.spolu.svc.owl.sci.openai.org:5001/v1/engines/dummy/completions"
+      , "-H", "OpenAI-Organization: openai"
       , "-H", "Content-Type: application/json"
+      , "-H", "Authorization: Bearer dummy"
       , "-d"
       , let jr := json.unparse serialized_req in if win then
           "\\\"".intercalate (jr.split (= '\"'))
@@ -95,51 +95,35 @@ pure {
     ]
 }
 
-meta def mk_binding' (ctor : name → binder_info → expr → expr → expr) (e : expr) : Π (l : expr), tactic expr
-| h@(expr.local_const n pp_n bi ty) := do {
-    ty ← tactic.infer_type h,
-    pure $ ctor pp_n bi ty (e.abstract_local n)
-  }
-| _ := pure $ e
-
-meta def extract_fully_bound_goal : tactic expr := do {
-  locals ← list.reverse <$> tactic.local_context,
-  locals_with_types ← locals.mmap (λ x, prod.mk x <$> tactic.infer_type x),
-  g ← tactic.target,
-  locals.iterM g $ λ acc h, do {
-    mk_binding' expr.pi acc h
-  }
-}
-
-meta def autoname_serialize_ts_core (e : expr) (req : CompletionRequest)
-  : tactic CompletionRequest := do {
-  ts_str ← tactic.with_full_names $ do {
-    format.to_string <$> format.flatten <$> tactic.pp e
-  },
-  let prompt : string :=
-    "[LN] GOAL " ++ ts_str ++ (format!" {req.prompt_token} ").to_string ++ req.prompt_prefix,
-  eval_trace format!"\n \n \n PROMPT: {prompt} \n \n \n ",
-  pure {
-    prompt := prompt,
-    ..req}
-}
-
 meta def serialize_ts
   (req : CompletionRequest)
   : tactic_state → tactic CompletionRequest := λ ts, do {
-  ts_str ← ts.fully_qualified >>= postprocess_tactic_state,
+  ts_str ← postprocess_tactic_state ts,
+
   let prompt : string :=
-    "[LN] GOAL " ++ ts_str ++ (format!" {req.prompt_token} ").to_string ++ req.prompt_prefix,
+    "LEAN3 DECL foo GOAL " ++ ts_str ++ 
+    " OUTCOME proved " ++
+    (format!"{req.prompt_token}").to_string,
+
+  let prompt := if req.prompt_prefix.length > 0 then
+    (format!"{prompt} {req.prompt_prefix}").to_string
+  else
+    prompt,
+    
   eval_trace format!"\n \n \n PROMPT: {prompt} \n \n \n ",
+
   pure {
     prompt := prompt,
-    ..req}
+    ..req
+  }
 }
 
 setup_tactic_parser
 
 private meta def decode_response_msg : json → io (json × json) := λ response_msg, do {
-  (json.array choices) ← option.to_monad $ response_msg.lookup "choices" | io.fail' format!"can't find choices in {response_msg}",
+  (json.array choices) ← 
+    option.to_monad $ response_msg.lookup "choices" | 
+    io.fail' format!"can't find choices in {response_msg}",
   prod.mk <$> (json.array <$> choices.mmap (λ choice, option.to_monad $ json.lookup choice "text")) <*> do {
     logprobss ← choices.mmap (λ msg, option.to_monad $ msg.lookup "logprobs"),
     scoress ← logprobss.mmap (λ logprobs, option.to_monad $ logprobs.lookup "token_logprobs"),
@@ -154,15 +138,19 @@ let fn : CompletionRequest → io json := λ req, do {
   response_raw ← io.cmd proc_cmds,
   when req.show_trace $ io.put_str_ln' format!"[openai_api] RAW RESPONSE: {response_raw}",
 
-  response_msg ← (option.to_monad $ json.parse response_raw) | io.fail' format!"[openai_api] JSON PARSE FAILED {response_raw}",
+  response_msg ←
+    (option.to_monad $ json.parse response_raw) |
+    io.fail' format!"[openai_api] JSON PARSE FAILED {response_raw}",
 
   when req.show_trace $ io.put_str_ln' format!"GOT RESPONSE_MSG",
 
   do {
-    predictions ← decode_response_msg response_msg | io.fail' format!"[openai_api] UNEXPECTED RESPONSE MSG: {response_msg}",
+    predictions ←
+      decode_response_msg response_msg | 
+      io.fail' format!"[openai_api] UNEXPECTED RESPONSE MSG: {response_msg}",
     when req.show_trace $ io.put_str_ln' format!"PREDICTIONS: {predictions}",
     pure (json.array [predictions.fst, predictions.snd])
-  } <|> pure (json.array $ [json.of_string $ format.to_string $ format!"ERROR {response_msg}"]) -- catch API errors here
+  } <|> pure (json.array $ [json.of_string $ format.to_string $ format!"ERROR {response_msg}"])
 } in ⟨fn⟩
 
 end openai_api
@@ -176,16 +164,14 @@ meta def default_partial_req : openai.CompletionRequest :=
 {
   prompt := "",
   max_tokens := 128,
-  temperature := (0.7 : native.float),
+  temperature := (1.0 : native.float),
   top_p := 1,
   n := 1,
   best_of := none,
   stream := none,
   logprobs := 0,
   echo := none,
-  stop := none, -- TODO(jesse): list string,
-  presence_penalty := none,
-  frequency_penalty := none,
+  stop := "RESULT", -- TODO(jesse): list string,
   show_trace := (tactic.is_trace_enabled_for `gptf)
 }
 
@@ -201,11 +187,17 @@ meta def proof_search_step
   pure $ flip prod.mk candidates $ successes.map (prod.fst ∘ prod.snd)
 }
 
-meta def gptf_proof_search_step (engine_id : string) (api_key : string) (req : CompletionRequest) : tactic (list string × list string) := do {
+meta def gptf_proof_search_step
+  (engine_id : string)
+  (api_key : string)
+  (req : CompletionRequest) :
+  tactic (list string × list string) := do {
   proof_search_step
     (openai_api
       engine_id api_key)
-        (serialize_ts req) (run_all_beam_candidates $ unwrap_lm_response_logprobs req.prompt_prefix req.replace_prefix "[gptf_proof_search_step]")
+        (serialize_ts req)
+          (run_all_beam_candidates $ 
+            unwrap_lm_response_logprobs req.prompt_prefix req.replace_prefix "[gptf_proof_search_step]")
 }
 
 end openai_proof_search

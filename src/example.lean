@@ -5,7 +5,7 @@ section gptf
 
 example {α} (a : α) : a = a :=
 begin
-  refl
+  refl,
 end
 
 example : ∃ n : ℕ, 8 = 2*n :=

@@ -37,9 +37,9 @@ meta structure GPTSuggestConfig : Type :=
 (n : ℕ := 32)
 (temp : native.float := 1.0)
 (silent := ff)
-(engine_id : string := "formal-lean-pact")
+(engine_id : string := "formal-lean-medium-m1")
 (api_key : option string := none)
-(prompt_token := "PROOFSTEP")
+(prompt_token := "TACTIC")
 (pfx := "")
 (postprocess : option (string → string) := none)
 
@@ -62,6 +62,8 @@ meta def gptf (cfg : GPTSuggestConfig := {}) : tactic unit := do {
   when (predictions.length > 0) $
     tactic.trace "\nAll predictions: \n----------------" *> predictions.mmap' tactic.trythis
 }
+
+meta def gg (cfg : GPTSuggestConfig := {}) : tactic unit := gptf
 
 meta def neuro_eblast : tactic unit :=
 gptf { pfx := "rw [",
