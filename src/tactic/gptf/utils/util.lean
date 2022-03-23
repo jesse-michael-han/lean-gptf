@@ -178,7 +178,7 @@ declare_trace gptf
 meta def set_show_eval_trace : bool → tactic unit := tactic.set_bool_option `evaltrace
 
 meta def eval_trace {α} [has_to_tactic_format α] : α → tactic unit | a := do {
-  when (tt) (tactic.trace a)
+  when (tactic.is_trace_enabled_for `gptf) (tactic.trace a)
 }
 
 namespace interaction_monad

@@ -25,7 +25,7 @@ end
 
 example {P Q : Prop} : (¬ P) ∧ (¬ Q) → ¬ (P ∨ Q) :=
 begin
-  exact not_or_distrib.mpr -- `gptf {pfx := "exact"}`
+  exact not_or_distrib.mpr -- `gptf {p := "exact"}`
 end
 
 example {P Q R : Prop} : (P ∧ Q) → ((P → R) → ¬ (Q → ¬ R)) :=
@@ -43,14 +43,14 @@ end
 example : ∀ (F1 F2 F3 : Prop), ((¬F1 ∧ F3) ∨ (F2 ∧ ¬F3)) → (F2 → F1) → (F2 → F3) →  ¬F2 :=
 begin
   intros P Q R H₁ H₂ H₃ H₄,
-  apply H₁.elim, -- `gptf {pfx := "apply"}`
+  apply H₁.elim, -- `gptf {p := "apply"}`
   { assume h, simp * at * }, -- `gptf`
   cc -- `gptf`
 end
 
 example : ∀ (f : nat → Prop), f 2 → ∃ x, f x :=
 begin
-  exact λ f hf, ⟨_, hf⟩ -- by `gptf {pfx := "exact"}` :D
+  exact λ f hf, ⟨_, hf⟩ -- by `gptf {p := "exact"}` :D
 end
 
 example {G : Type} [group G] (x y z : G) : (x * z) * (z⁻¹ * y) = x * y :=

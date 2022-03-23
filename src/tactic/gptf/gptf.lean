@@ -35,17 +35,24 @@ open openai
 
 meta structure GPTSuggestConfig : Type :=
 (n : ℕ := 32)
-(temp : native.float := 1.0)
+(t : native.float := 1.0)
 (silent := ff)
 (engine_id : string := "formal-lean-medium-m1")
 (api_key : option string := none)
 (prompt_token := "TACTIC")
-(pfx := "")
+(p := "")
 (postprocess : option (string → string) := none)
 
 meta def gptf_core (cfg : GPTSuggestConfig := {}) : tactic (list string × list string) := do {
 tactic.success_if_fail done *> do {
-  let req := { n := cfg.n, temperature := cfg.temp, prompt_token := cfg.prompt_token, prompt_prefix := cfg.pfx, replace_prefix := cfg.postprocess, .. default_partial_req },
+  let req := {
+    n := cfg.n,
+    temperature := cfg.t,
+    prompt_token := cfg.prompt_token,
+    prompt_prefix := cfg.p,
+    replace_prefix := cfg.postprocess,
+    .. default_partial_req
+  },
   api_key ← (cfg.api_key <|> get_openai_api_key),
   gptf_proof_search_step cfg.engine_id api_key req
   }
@@ -63,10 +70,11 @@ meta def gptf (cfg : GPTSuggestConfig := {}) : tactic unit := do {
     tactic.trace "\nAll predictions: \n----------------" *> predictions.mmap' tactic.trythis
 }
 
-meta def gg (cfg : GPTSuggestConfig := {}) : tactic unit := gptf
+meta def gg (cfg : GPTSuggestConfig := {}) : tactic unit :=
+gptf cfg
 
 meta def neuro_eblast : tactic unit :=
-gptf { pfx := "rw [",
+gptf { p := "rw [",
        postprocess := λ x, "{[smt] eblast_using [" ++ (x) ++ "}" }
 
 end interactive
