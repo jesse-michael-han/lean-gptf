@@ -17,7 +17,6 @@ meta structure CompletionRequest : Type :=
 (logprobs : int := 0)
 (echo : option bool := none)
 (stop : option string := none) -- TODO(jesse): list string
-(show_trace : bool := ff)
 (prompt_token := "TACTIC")
 (prompt_prefix := "")
 (replace_prefix : option (string → string) := none)
@@ -38,7 +37,7 @@ let validate_optional_and_return {α} [has_to_format α] (pred : α → bool) : 
 let MAX_N : int := 128 in
 λ req, match req with
 | ⟨prompt, max_tokens, temperature, top_p, n, best_of,
-  stream, logprobs, echo, stop, _, prompt_token, prompt_prefix, replace_prefix⟩ := do
+  stream, logprobs, echo, stop, prompt_token, prompt_prefix, replace_prefix⟩ := do
   -- TODO(jesse): ensure validation does not fail silently
   max_tokens ← validate_and_return validate_max_tokens max_tokens,
   -- temperature ← validate_and_return validate_float_frac temperature,
@@ -46,7 +45,7 @@ let MAX_N : int := 128 in
   n ← validate_and_return (λ x, 0 ≤ x ∧ x ≤ MAX_N) /- go wild with the candidates -/ n,
   best_of ← validate_optional_and_return (λ x, n ≤ x ∧ x ≤ MAX_N) best_of,
 
-  eval_trace $ "[openai.CompletionRequest.to_tactic_json] VALIDATION PASSED",
+  -- tactic.trace $ "[openai.CompletionRequest.to_tactic_json] VALIDATION PASSED",
 
   let pre_kvs : list (string × option json) := [
     ("prompt", json.of_string prompt),
@@ -69,10 +68,10 @@ meta def CompletionRequest.to_cmd
   (api_key : string) :
   CompletionRequest → io (io.process.spawn_args)
 | req@⟨prompt, max_tokens, temperature, top_p, n, best_of,
-  stream, logprobs, echo, stop, _, prompt_token, prompt_prefix, replace_prefix⟩ := do
-when (tt) $ io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] ENTERING",
+  stream, logprobs, echo, stop, prompt_token, prompt_prefix, replace_prefix⟩ := do
+-- io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] ENTERING",
 serialized_req ← io.run_tactic' $ req.to_tactic_json,
-when (tt) $ io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] SERIALIZED",
+-- io.put_str_ln' format!"[openai.CompletionRequest.to_cmd] SERIALIZED",
 win ← io.run_tactic is_windows,
 pure {
   cmd := "curl",
@@ -99,18 +98,16 @@ meta def serialize_ts
   (req : CompletionRequest)
   : tactic_state → tactic CompletionRequest := λ ts, do {
   ts_str ← postprocess_tactic_state ts,
+  decl_name ← postprocess_decl_name,
 
   let prompt : string :=
-    "LEAN3 DECL foo GOAL " ++ ts_str ++ 
-    " OUTCOME proved " ++
-    (format!"{req.prompt_token}").to_string,
-
+    (format!"LEAN3 DECL {decl_name} GOAL {ts_str} OUTCOME proved {req.prompt_token}").to_string,
   let prompt := if req.prompt_prefix.length > 0 then
     (format!"{prompt} {req.prompt_prefix}").to_string
   else
     prompt,
-    
-  eval_trace format!"\n \n \n PROMPT: {prompt} \n \n \n ",
+
+  -- tactic.trace format!"\n===================\nPROMPT: {prompt}\n===================\n",
 
   pure {
     prompt := prompt,
@@ -136,19 +133,19 @@ meta def openai_api (engine_id : string) (api_key : string) : ModelAPI Completio
 let fn : CompletionRequest → io json := λ req, do {
   proc_cmds ← req.to_cmd engine_id api_key,
   response_raw ← io.cmd proc_cmds,
-  when req.show_trace $ io.put_str_ln' format!"[openai_api] RAW RESPONSE: {response_raw}",
+  -- io.put_str_ln' format!"[openai_api] RAW RESPONSE: {response_raw}",
 
   response_msg ←
     (option.to_monad $ json.parse response_raw) |
     io.fail' format!"[openai_api] JSON PARSE FAILED {response_raw}",
 
-  when req.show_trace $ io.put_str_ln' format!"GOT RESPONSE_MSG",
+  -- io.put_str_ln' format!"GOT RESPONSE_MSG",
 
   do {
     predictions ←
       decode_response_msg response_msg | 
       io.fail' format!"[openai_api] UNEXPECTED RESPONSE MSG: {response_msg}",
-    when req.show_trace $ io.put_str_ln' format!"PREDICTIONS: {predictions}",
+    -- io.put_str_ln' format!"PREDICTIONS: {predictions}",
     pure (json.array [predictions.fst, predictions.snd])
   } <|> pure (json.array $ [json.of_string $ format.to_string $ format!"ERROR {response_msg}"])
 } in ⟨fn⟩
@@ -171,8 +168,7 @@ meta def default_partial_req : openai.CompletionRequest :=
   stream := none,
   logprobs := 0,
   echo := none,
-  stop := "RESULT", -- TODO(jesse): list string,
-  show_trace := (tactic.is_trace_enabled_for `gptf)
+  stop := "RESULT" -- TODO(jesse): list string,
 }
 
 meta def proof_search_step
