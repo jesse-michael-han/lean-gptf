@@ -101,7 +101,7 @@ meta def serialize_ts
   decl_name ← postprocess_decl_name,
 
   let prompt : string :=
-    (format!"LEAN3 DECL {decl_name} GOAL {ts_str} OUTCOME proved {req.prompt_token}").to_string,
+    (format!"LEAN3 DECL {decl_name} OPENS  GOAL {ts_str} OUTCOME proved {req.prompt_token}").to_string,
   let prompt := if req.prompt_prefix.length > 0 then
     (format!"{prompt} {req.prompt_prefix}").to_string
   else

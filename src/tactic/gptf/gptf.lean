@@ -34,8 +34,8 @@ setup_tactic_parser
 open openai
 
 meta structure GPTSuggestConfig : Type :=
-(n : ℕ := 32)
-(t : native.float := 1.0)
+(n : ℕ := 16)
+(t : native.float := 0.5)
 (silent := ff)
 (engine_id : string := "formal-lean-medium-m1")
 (api_key : option string := none)
